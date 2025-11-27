@@ -21,6 +21,7 @@ def create_query_agent(
     prompt_text = prompts["query_agent_prompt"].format(organization_name = ORGANIZATION_NAME)
     prompt = ChatPromptTemplate.from_messages([
         ("system", prompt_text),
+        MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])

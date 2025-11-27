@@ -4,18 +4,38 @@ from settings import GOOGLE_API_KEY
 from src.agents.evaluator_agent import evaluator_agent
 from src.agents.retriver_agent import retriver_agent
 from src.schemas.response_schema import ResponseSchema
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import trim_messages
+from langchain_core.runnables import RunnableConfig
 
 model = ChatGoogleGenerativeAI(model="gemini-2.5-flash",google_api_key = GOOGLE_API_KEY)
 
 def evaluation_edge(state: ResponseSchema):
     return "retriver_agent" if state["evaluation_state"] == "False" else END
 
+def memory_limiter(state: ResponseSchema, config: RunnableConfig) -> ResponseSchema:
+    limit = config.get("configurable", {}).get("memory_limit", 6)
+    
+    trimmed_messages = trim_messages(
+        state["messages"],
+        strategy="last",
+        token_counter=len, 
+        max_tokens=limit,
+        start_on="human",
+        include_system=True,
+        allow_partial=False,
+    )
+    
+    return {"messages": trimmed_messages}
+
 graph = StateGraph(ResponseSchema)
 
+graph.add_node('memory_limiter', memory_limiter)
 graph.add_node('retriver_agent', retriver_agent)
 graph.add_node('evaluator_agent', evaluator_agent)
 
-graph.add_edge(START, 'retriver_agent')
+graph.set_entry_point('memory_limiter')
+graph.add_edge('memory_limiter', 'retriver_agent')
 graph.add_edge('retriver_agent', 'evaluator_agent')
 graph.add_conditional_edges(
     "evaluator_agent",
@@ -26,7 +46,12 @@ graph.add_conditional_edges(
     }
 )
 
-workflow = graph.compile()
+
+checkpointer = InMemorySaver()
+
+workflow = graph.compile(checkpointer = checkpointer)
+
+
 
 if __name__ == "__main__":
     initial_state = {

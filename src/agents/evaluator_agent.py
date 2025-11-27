@@ -7,8 +7,8 @@ profanity.load_censor_words()
 
 def evaluator_agent(state: ResponseSchema) -> ResponseSchema:
     user_query = state["user_query"]
-    query_response = state["query_response"]
-    llm_text = query_response
+    last_message = state["messages"][-1]
+    llm_text = last_message.content
     if state["retry_count"] > 3:
         return {
             "user_query": user_query,

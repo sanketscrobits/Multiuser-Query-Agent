@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from src.Workflow.workflow import workflow
+from settings import MEMORY_LIMIT
 import re
 
 app = FastAPI()
@@ -11,6 +12,10 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
+
+class ChatRequest(BaseModel):
+    user_message: str
+    thread_id: str = "default_thread"
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +37,9 @@ async def chatbot_endpoint(request: ChatRequest):
         user_input = request.user_message
         print(f"User message: {user_input}")
 
+        from langchain_core.messages import HumanMessage
         initial_state = {
+            "messages": [HumanMessage(content=user_input)],
             "user_query": user_input,
             "query_response": "",
             "evaluation_state": "",
@@ -40,7 +47,16 @@ async def chatbot_endpoint(request: ChatRequest):
             "instruction": ""
         }
 
-        final_state = workflow.invoke(initial_state, config={"verbose": True})
+        thread_id = request.thread_id
+
+        config = {
+            "configurable": {"thread_id": thread_id},
+            "verbose": True,
+            "memory_limit": MEMORY_LIMIT
+        }
+
+        final_state = workflow.invoke(initial_state, config= config)
+        
         print("Workflow final state:", final_state)
 
         query_response = final_state.get("query_response", "No response generated.")
