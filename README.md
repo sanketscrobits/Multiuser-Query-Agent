@@ -146,6 +146,3 @@ uv pip run python -m src.main.main
 - Add more robust error handling and logging for production use.
 - Ensure all documents to be queried are indexed in Pinecone.
 - Add unit and integration tests for all modules.
-
-
-(Test push)
