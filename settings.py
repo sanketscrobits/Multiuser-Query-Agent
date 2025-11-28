@@ -16,3 +16,10 @@ PHONE_NUMBER_ID=getenv("WA_PHONE_NUMBER_ID")
 GUARDRAILS_API_KEY=getenv("GUARDRAILS_API_KEY")
 ORGANIZATION_NAME = getenv("ORGANIZATION_NAME")
 MEMORY_LIMIT = int(getenv("MEMORY_LIMIT"))
+
+# Hardcoded users as requested
+USERS_CONFIG = {
+    "user1": {"namespace": "user1_ns"},
+    "user2": {"namespace": "user2_ns"},
+    "user3": {"namespace": "user3_ns"},
+}

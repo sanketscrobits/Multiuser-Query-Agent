@@ -3,15 +3,17 @@ from src.utils.vector_db.vector_store_singleton import VectorStoreSingleton
 from langchain_huggingface import HuggingFaceEmbeddings
 from src.utils.vector_db.loader_strategies.local_loader import LocalLoader
 from src.utils.vector_db.index_strategies.pinecone_vector_index import PineconeVectorIndex
+from langchain_core.runnables import RunnableConfig
 
 
 @tool
-def get_context(query_text: str) -> str:
+def get_context(query_text: str, config: RunnableConfig) -> str:
     """
     This function helps to answer user question by retrieving relevant context from documents.
     
     Args: 
         query_text: User question in string format
+        config: Configuration dictionary (injected)
         
     Returns: 
         Context related to user's question in string format
@@ -28,7 +30,10 @@ def get_context(query_text: str) -> str:
         vector_index_strategy=vector_index_strategy,
     )
 
-    result = vector_store.query(query_text = query_text)
+    # Extract namespace from config
+    namespace = config.get("configurable", {}).get("namespace")
+    
+    result = vector_store.query(query_text = query_text, namespace=namespace)
     return result
 
 if __name__ == "__main__":

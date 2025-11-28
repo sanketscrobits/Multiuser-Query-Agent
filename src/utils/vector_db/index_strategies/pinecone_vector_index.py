@@ -9,10 +9,9 @@ class PineconeVectorIndex(VectorIndexStrategy):
         self.__embeddings = embeddings
         self.__collection = False
 
-    def create_or_load_vector_index(self, markdown_text: str, chunker=None):
-        if self.__collection:
-            return self
-
+    def create_or_load_vector_index(self, markdown_text: str, chunker=None, namespace: str = None):
+        # Note: We removed the self.__collection check because we want to allow multiple uploads to different namespaces
+        
         index = self.__api_key.Index(self.__collection_name)
         # Use provided chunker callable if supplied; it may return Documents or strings
         if chunker is not None:
@@ -25,36 +24,39 @@ class PineconeVectorIndex(VectorIndexStrategy):
             # Fallback: no chunker provided; treat whole markdown as a single chunk
             chunk_texts = [markdown_text] if markdown_text else []
         if not chunk_texts:
-            self.__collection = True
             return self
 
         # Embed documents using langchain's HuggingFaceEmbeddings
         vectors = self.__embeddings.embed_documents(chunk_texts)
         pinecone_vectors = []
+        import uuid
         for i, (values, chunk_text) in enumerate(zip(vectors, chunk_texts)):
+            # Use UUID to ensure unique IDs across multiple uploads
+            chunk_id = str(uuid.uuid4())
             pinecone_vectors.append({
-                "id": f"chunk_{i}",
+                "id": chunk_id,
                 "values": values,
                 "metadata": {
                     "chunk_text": chunk_text,
                     "chunk_id": i,
-                    "source": "documents_folder"
+                    "source": "uploaded_document"
                 }
             })
 
-        # Upsert to Pinecone
-        index.upsert(vectors=pinecone_vectors)
-        print(f"Uploaded {len(pinecone_vectors)} chunks to Pinecone index '{self.__collection_name}'")
+        # Upsert to Pinecone with namespace
+        index.upsert(vectors=pinecone_vectors, namespace=namespace)
+        print(f"Uploaded {len(pinecone_vectors)} chunks to Pinecone index '{self.__collection_name}' in namespace '{namespace}'")
         self.__collection = True
         return self
     
-    def semantic_search(self, embeded_query: list[float]) -> str:
+    def semantic_search(self, embeded_query: list[float], namespace: str = None) -> str:
         index = self.__api_key.Index(self.__collection_name)
         response = index.query(
             vector=embeded_query,
             top_k=20,
             include_metadata=True,
-            score_threshold=0.7
+            score_threshold=0.7,
+            namespace=namespace
         )
         if response.get("matches"):
             context = response["matches"][0]["metadata"].get("chunk_text", "")

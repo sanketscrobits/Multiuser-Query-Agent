@@ -39,12 +39,22 @@ class VectorStoreSingleton():
             print("--- Vector Store Built Successfully ---")
         return self.vector_store
 
+    def ingest_document(self, text: str, namespace: str = None):
+        """Ingests a document text into the vector store for a specific namespace."""
+        print(f"--- Ingesting Document for Namespace: {namespace} ---")
+        self.vector_index_strategy.create_or_load_vector_index(
+            text,
+            chunker=self.chunker,
+            namespace=namespace
+        )
+        print("--- Document Ingested Successfully ---")
 
-    def query(self, query_text: str):
+
+    def query(self, query_text: str, namespace: str = None):
         # HuggingFaceEmbeddings from langchain exposes embed_query for single strings
         query_embedding = self.embeddings_model.embed_query(query_text)
         """The main query method."""
         if self.vector_store is None:
             self._build_vectorstore()
-        results = self.vector_index_strategy.semantic_search(embeded_query=query_embedding)
+        results = self.vector_index_strategy.semantic_search(embeded_query=query_embedding, namespace=namespace)
         return results

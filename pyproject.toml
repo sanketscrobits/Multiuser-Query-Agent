@@ -28,6 +28,7 @@ dependencies = [
     "pydash>=8.0.5",
     "pypdf>=6.0.0",
     "python-dotenv>=1.1.1",
+    "python-multipart>=0.0.20",
     "regex>=2025.9.1",
     "scikit-learn>=1.7.1",
     "sentence-transformers>=5.1.0",
