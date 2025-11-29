@@ -26,17 +26,12 @@ class VectorStoreSingleton():
 
     def _build_vectorstore(self):
         """Orchestrates the document loading and vector store creation."""
+        # Deprecated: We are now using dynamic ingestion via /upload
+        # If we need to initialize the vector store connection, we can do it here without loading files
         if self.vector_store is None:
-            print("--- Building Vector Store ---")
-
-            documents_markdown = self.document_loader_strategy.load_documents(path = path)
-
-            # Build or load the backing vector index using provided embeddings
-            self.vector_store = self.vector_index_strategy.create_or_load_vector_index(
-                documents_markdown,
-                chunker=self.chunker
-            )
-            print("--- Vector Store Built Successfully ---")
+             # Just ensure the strategy is ready (e.g. Pinecone index connected)
+             # We don't need to load files from disk anymore
+             pass
         return self.vector_store
 
     def ingest_document(self, text: str, namespace: str = None):
@@ -54,7 +49,6 @@ class VectorStoreSingleton():
         # HuggingFaceEmbeddings from langchain exposes embed_query for single strings
         query_embedding = self.embeddings_model.embed_query(query_text)
         """The main query method."""
-        if self.vector_store is None:
-            self._build_vectorstore()
+        # We don't need to auto-build vectorstore anymore as we rely on uploaded data
         results = self.vector_index_strategy.semantic_search(embeded_query=query_embedding, namespace=namespace)
         return results

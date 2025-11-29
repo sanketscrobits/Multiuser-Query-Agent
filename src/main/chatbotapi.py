@@ -17,7 +17,7 @@ class ChatResponse(BaseModel):
 class ChatRequest(BaseModel):
     user_message: str
     thread_id: str = "default_thread"
-    user_id: str = "user1" # Default to user1 for testing
+    user_id: str = "user2" # Default to user1 for testing
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,17 +39,18 @@ async def chatbot_endpoint(request: ChatRequest):
         user_input = request.user_message
         user_id = request.user_id
         
-        # Validate user and get namespace
+      
         if user_id not in USERS_CONFIG:
             raise HTTPException(status_code=400, detail=f"Invalid user_id. Available users: {list(USERS_CONFIG.keys())}")
             
-        # Unify identity: 
-        # 1. Namespace comes from config (based on user_id)
-        # 2. Thread ID is derived from user_id (or passed explicitly, but defaults to user-specific)
         
         namespace = USERS_CONFIG[user_id]["namespace"]
         
-        # If thread_id is default, bind it to the user_id to ensure isolation
+        
+        from src.utils.request_context import set_namespace
+        set_namespace(namespace)
+        
+        
         if request.thread_id == "default_thread":
             thread_id = f"{user_id}_thread"
         else:
@@ -128,11 +129,9 @@ async def upload_document(
             
         namespace = USERS_CONFIG[user_id]["namespace"]
         
-        # Read file content
         content = await file.read()
-        text_content = content.decode("utf-8") # Assuming text/markdown file for now
+        text_content = content.decode("utf-8")
         
-        # Initialize VectorStoreSingleton (if not already)
         embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
         document_loader_strategy = LocalLoader()
         vector_index_strategy = PineconeVectorIndex(embeddings=embeddings_model)
@@ -143,7 +142,6 @@ async def upload_document(
             vector_index_strategy=vector_index_strategy,
         )
         
-        # Ingest document
         vector_store.ingest_document(text_content, namespace=namespace)
         
         return {"status": "ok", "message": f"Document uploaded and ingested for user {user_id} in namespace {namespace}"}

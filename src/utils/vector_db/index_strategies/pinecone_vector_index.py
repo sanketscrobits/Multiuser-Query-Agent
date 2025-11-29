@@ -50,6 +50,9 @@ class PineconeVectorIndex(VectorIndexStrategy):
         return self
     
     def semantic_search(self, embeded_query: list[float], namespace: str = None) -> str:
+        if namespace is None:
+            raise ValueError("Namespace is required for semantic search to ensure data isolation.")
+            
         index = self.__api_key.Index(self.__collection_name)
         response = index.query(
             vector=embeded_query,

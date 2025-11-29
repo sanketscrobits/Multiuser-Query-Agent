@@ -30,9 +30,21 @@ def get_context(query_text: str, config: RunnableConfig) -> str:
         vector_index_strategy=vector_index_strategy,
     )
 
-    # Extract namespace from config
+    if config is None:
+        config = {}
+    
+    print(f"DEBUG: get_context tool config: {config}")
+        
+    # Try to get namespace from config first, then fallback to context var
     namespace = config.get("configurable", {}).get("namespace")
     
+    if namespace is None:
+        from src.utils.request_context import get_namespace
+        namespace = get_namespace()
+        print(f"DEBUG: Retrieved namespace from ContextVar: {namespace}")
+    else:
+        print(f"DEBUG: Retrieved namespace from Config: {namespace}")
+        
     result = vector_store.query(query_text = query_text, namespace=namespace)
     return result
 
